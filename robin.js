@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name		Robin Enhancement Script
 // @namespace	https://www.reddit.com/
-// @version		3.1.2
-// @description	Highlight mentions, make link clickable, add tabbed channels & automatically remove spam
+// @version		3.1.3
+// @description	Highlight mentions, make links clickable, add tabbed channels & automatically remove spam
 // @author		Bag, netnerd01
 // @match		https://www.reddit.com/robin*
 // @grant		none
@@ -101,7 +101,7 @@
 
 		// turn all channels off
 		this.disable_all_channels = function(e){
-			$("#robinChatWindow").attr("class", _self.defaultRoomClasses);
+			$("#robinChatWindow").attr("class", _self.defaultRoomClasses).attr("data-channel-key","");
 			_self.$el.find(".robin-filters > span").removeClass("selected");
 			this.currentRooms = 0;
 
@@ -119,6 +119,14 @@
 			this.$el.find(".robin-filters").html(html);
 		};
 
+		// After creation of a new channel, go find if any content (not matched by a channel already) is relevant
+		this.reScanChannels = function(new_channel){
+			$("#robinChatWindow").find("div.robin-message").each(function(idx,item){
+				var line = $(item).find(".robin-message--message").text().toLowerCase();
+				tabbedChannels.proccessLine(line, $(item), true);
+			});
+		}
+
 		// Add new channel
 		this.addChannel = function(new_channel){
 			if(this.channels.indexOf(new_channel) === -1){
@@ -127,6 +135,9 @@
 				this.updateChannelMatchCache();
 				this.saveChannelList();
 				this.drawTabs();
+
+				// Populate content for channel
+				this.reScanChannels();
 
 				// refresh everything after redraw
 				this.disable_all_channels();
@@ -141,6 +152,10 @@
 				this.updateChannelMatchCache();
 				this.saveChannelList();
 				this.drawTabs();
+
+				// sub channels, will fall back to existing channels
+				this.reScanChannels();
+
 				// refresh everything after redraw
 				this.disable_all_channels();
 			}
@@ -181,9 +196,20 @@
 		}
 
 		// Procces each chat line to create text
-		this.proccessLine = function(text, $element){
+		this.proccessLine = function(text, $element, rescan){
 			var i, idx, channel;
-			for(i=0; i< this.channelMatchingCache.length; i++){
+
+			// If rescanning, clear any existing "channel" classes
+			if(typeof rescan !== 'undefined' && rescan === true){
+				$element.removeClass("in-channel");
+
+				for(i=0; i <= this.channels.length; i++){
+					$element.removeClass("robin-filter-" + i);
+				}
+			}
+
+			// Scann for channel identifiers
+			for(i=0; i< this.channelMatchingCache.length; i++){ // sorted so longer get picked out before shorter ones (sub channel matching)
 				idx = this.channelMatchingCache[i];
 				channel = this.channels[idx];
 
@@ -388,10 +414,13 @@
 		var $msg = $ele.find(".robin-message--message");
 		var $usr = $ele.find(".robin--username");
 		var line = $msg.text().toLowerCase();
+
 		// dont parse system messages
 		if($ele.hasClass("robin--user-class--system")){
 			if(line.indexOf("ratelimit | you are doing that too much") !== -1){
-				$(".text-counter-input").val(user_last_message);
+				// channel key length + a space length
+				var offset = $("#robinChatWindow").attr("data-channel-key").length + 1;
+				$(".text-counter-input").val(user_last_message.slice(offset));
 			}
 			return;
 		}
