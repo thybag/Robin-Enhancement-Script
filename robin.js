@@ -22,6 +22,19 @@
 	//
 	var _robin_grow_detected = false;
 
+	var colors = [
+		'rgba(255,0,0,0.1)',
+		'rgba(0,255,0,0.1)',
+		'rgba(0,0,255,0.1)',
+		'rgba(0,255,255,0.1)',
+		'rgba(255,0,255,0.1)',
+		'rgba(255,255,0,0.1)',
+		'rgba(211,211,211, .1)',
+		'rgba(0,100,0, .1)',
+		'rgba(255,20,147, .1)',
+		'rgba(184,134,11, .1)',
+	 ];
+
 	// Play nice with Greasemonkey
 	if(typeof GM_getValue === "undefined") GM_getValue = function(){return false;};
 	if(typeof GM_setValue === "undefined") GM_setValue = function(){return false;};
@@ -464,22 +477,66 @@
 		}
 	});
 
+
+	function createOption(name, click_action, default_state){
+		var checked_markup;
+		var key = "robin-enhance-" + name.replace(/\W/g, '');
+		console.log(key);
+		var state = (typeof default_state !== "undefined") ? default_state : false;
+
+		// try and state if setting is defined
+		if(GM_getValue(key)){
+			console.log("state loaded");
+			state = (GM_getValue(key) === 'true') ? true : false;
+		}
+		// markup for state
+		checked_markup = (state === true) ? "checked='checked'" : "";
+		// render option
+		var $option = $("<label><input type='checkbox' "+checked_markup+">"+name+"</label>").click(function(){
+			var checked = $(this).find("input").is(':checked');
+
+			// persist state
+			if(checked != state){
+				console.log("state saved", checked);
+				GM_setValue(key, checked ? 'true' : 'false'); // true/false stored as strings, to avoid unset matching
+				state = checked;
+			}
+
+			click_action(checked, $(this));
+		});
+		// add to dom
+		$("#robinDesktopNotifier").append($option);
+		// init
+		click_action(default_state, $option)
+	}
+
 	// When everything is ready
 	$(document).ready(function(){
 
 		// Set default spam filter type
 		$("#robinChatWindow").addClass("hide-spam");
 
-		// Add checkbox to toggle "hide" behaviors
-		$("#robinDesktopNotifier").append("<label><input type='checkbox' checked='checked'>Hide spam completely (<span id='spamcount'>0</span> removed)</label>").click(function(){
-			if($(this).find("input").is(':checked')){
-				$("#robinChatWindow").removeClass("mute-spam").addClass("hide-spam");
+		createOption("Hide spam completely (<span id='spamcount'>0</span> removed)", function(checked, ele){
+			if(checked){
+				$("#robinChat").removeClass("mute-spam").addClass("hide-spam");
 			}else{
-				$("#robinChatWindow").removeClass("hide-spam").addClass("mute-spam");
+				$("#robinChat").removeClass("hide-spam").addClass("mute-spam");
 			}
 			// correct scroll after spam filter change
 			_scroll_to_bottom();
-		});
+		},true);
+
+		createOption("Use channel colors", function(checked, ele){
+			if(checked){
+				$("#robinChat").addClass("show-colors");
+			}else{
+				$("#robinChat").removeClass("show-colors");
+			}
+			// correct scroll after spam filter change
+			_scroll_to_bottom();
+		},true);
+
+
 
 		blocked_spam_el = $("#spamcount")[0];
 
@@ -508,8 +565,12 @@
 	// filter for channel
 	stylesheet.insertRule("#robinChatWindow.robin-filter div.robin-message { display:none; }", 0);
 	stylesheet.insertRule("#robinChatWindow.robin-filter div.robin-message.robin--user-class--system  { display:block; }", 0);
+	var color;
 	for(var c=0;c<35;c++){
-		stylesheet.insertRule("#robinChatWindow.robin-filter.robin-filter-"+c+" div.robin-message.robin-filter-"+c+" { display:block; }", 0);
+		color = colors[(c % (colors.length))];
+
+		stylesheet.insertRule("#robinChat.show-colors #robinChatWindow div.robin-message.robin-filter-"+c+" { background: "+color+";}", 0);
+		stylesheet.insertRule("#robinChatWindow.robin-filter.robin-filter-"+c+" div.robin-message.robin-filter-"+c+" { display:block;}", 0);
 	}
 
 	// Styles for filter tabs
@@ -530,9 +591,9 @@
 	stylesheet.insertRule("#robinChat #robinChatWindow div.robin-message.user-mention { display:block; font-weight:bold; }", 0);
 
 	// Add initial styles for "spam" messages
-	stylesheet.insertRule("#robinChat #robinChatWindow.hide-spam div.robin-message.spam-hidden { display:none; }", 0);
-	stylesheet.insertRule("#robinChat #robinChatWindow.mute-spam div.robin-message.spam-hidden { opacity:0.3; font-size:1.2em; }", 0);
-
+	stylesheet.insertRule("#robinChat.hide-spam #robinChatWindow div.robin-message.spam-hidden { display:none; }", 0);
+	stylesheet.insertRule("#robinChat.mute-spam #robinChatWindow div.robin-message.spam-hidden { opacity:0.3; font-size:1.2em; }", 0);
+	stylesheet.insertRule("#robinChat.show-colors #robinChatWindow div.robin-message.spam-hidden { opacity:0.3; font-size:1.2em; }", 0);
 	// muted user box
 	stylesheet.insertRule("#muted_users { font-size:1.2em; }", 0);
 	stylesheet.insertRule("#muted_users div { padding: 2px 0; }", 0);
