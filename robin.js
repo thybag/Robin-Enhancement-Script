@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Robin Enhancement Script
 // @namespace	https://www.reddit.com/
-// @version		3.3.3
+// @version		3.3.4
 // @description	Highlight mentions, make links clickable, add tabbed channels & automatically remove spam
 // @author		Bag, netnerd01
 // @match		https://www.reddit.com/robin*
@@ -413,12 +413,10 @@
 	function createOption(name, click_action, default_state){
 		var checked_markup;
 		var key = "robin-enhance-" + name.replace(/\W/g, '');
-		console.log(key);
 		var state = (typeof default_state !== "undefined") ? default_state : false;
 
 		// try and state if setting is defined
 		if(GM_getValue(key)){
-			console.log("state loaded");
 			state = (GM_getValue(key) === 'true') ? true : false;
 		}
 		// markup for state
@@ -429,7 +427,6 @@
 
 			// persist state
 			if(checked != state){
-				console.log("state saved", checked);
 				GM_setValue(key, checked ? 'true' : 'false'); // true/false stored as strings, to avoid unset matching
 				state = checked;
 			}
@@ -439,7 +436,7 @@
 		// add to dom
 		$("#robinDesktopNotifier").append($option);
 		// init
-		click_action(default_state, $option)
+		click_action(state, $option)
 	};
 
 	// update spam count
