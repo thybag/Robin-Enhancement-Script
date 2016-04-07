@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Robin Enhancement Script
 // @namespace	https://www.reddit.com/
-// @version		3.3.0
+// @version		3.3.2
 // @description	Highlight mentions, make links clickable, add tabbed channels & automatically remove spam
 // @author		Bag, netnerd01
 // @match		https://www.reddit.com/robin*
@@ -12,7 +12,7 @@
 (function() {
 
 	// Grab users username + play nice with RES
-	var robin_user = $("#header-bottom-right .user a").first().text();
+	var robin_user = $("#header-bottom-right .user a").first().text().toLowerCase();
 	var ignored_users = {};
 
 	// for spam counter - very important i know :P
@@ -462,8 +462,11 @@
 	};
 	// remove channel key from message
 	var remove_channel_key_from_message = function(message){
-		var offset = $("#robinChatWindow").attr("data-channel-key").length + 1;
-		return message.slice(offset);
+		if($("#robinChatWindow").attr("data-channel-key")){
+			var offset = $("#robinChatWindow").attr("data-channel-key").length;
+			return (offset === 0) ? message : message.slice(offset+1);
+		}
+		return message;
 	}
 
 	/**
