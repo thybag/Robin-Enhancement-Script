@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Robin Enhancement Script
 // @namespace	https://www.reddit.com/
-// @version		3.3.4
+// @version		3.3.5
 // @description	Highlight mentions, make links clickable, add tabbed channels & automatically remove spam
 // @author		Bag, netnerd01
 // @match		https://www.reddit.com/robin*
@@ -506,7 +506,7 @@
 		}
 
 		// Add mute button to users
-		if(!$ele.hasClass("robin--user-class--system") && $usr.text().toLowerCase != robin_user){
+		if(!$ele.hasClass("robin--user-class--system") && $usr.text().toLowerCase() != robin_user){
 			$("<span style='font-size:.8em;cursor:pointer'> [mute] </span>").insertBefore($usr).click(function(){
 				_mute_user($usr.text());
 			});
