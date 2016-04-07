@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Robin Enhancement Script
 // @namespace	https://www.reddit.com/
-// @version		3.3.2
+// @version		3.3.3
 // @description	Highlight mentions, make links clickable, add tabbed channels & automatically remove spam
 // @author		Bag, netnerd01
 // @match		https://www.reddit.com/robin*
@@ -460,11 +460,18 @@
 			$(".text-counter-input").val($(".text-counter-input").val() + ' ' + $(this).text()).focus();
 		}
 	};
+
 	// remove channel key from message
 	var remove_channel_key_from_message = function(message){
 		if($("#robinChatWindow").attr("data-channel-key")){
 			var offset = $("#robinChatWindow").attr("data-channel-key").length;
-			return (offset === 0) ? message : message.slice(offset+1);
+			if(offset === 0) return message;
+
+			if(message.indexOf("/me") === 0){
+				return "/me "+ message.slice(offset+5);
+			}else{
+				return message.slice(offset+1);
+			}
 		}
 		return message;
 	}
@@ -502,7 +509,7 @@
 		}
 
 		// Add mute button to users
-		if(!$ele.hasClass("robin--user-class--system") && $usr.text() != robin_user){
+		if(!$ele.hasClass("robin--user-class--system") && $usr.text().toLowerCase != robin_user){
 			$("<span style='font-size:.8em;cursor:pointer'> [mute] </span>").insertBefore($usr).click(function(){
 				_mute_user($usr.text());
 			});
