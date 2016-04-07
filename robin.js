@@ -18,8 +18,10 @@
 	// for spam counter - very important i know :P
 	var blocked_spam_el = null;
 	var blocked_spam = 0;
-	var user_last_message = '';
-	//
+
+	// via RobinEggs
+	var messageHistory = [];
+	var messageHistoryIndex = -1;
 	var _robin_grow_detected = false;
 
 	var colors = [
@@ -366,8 +368,11 @@
 		var text = $msg.html(); // read as html so stuff stays escaped
 		// normal links
 		text = text.replace(/\b(?:https?|ftp):\/\/[a-z0-9-+&@#\/%?=~_|!:,.;]*[a-z0-9-+&@#\/%=~_|]/gim, '<a target="blank" href="$&">$&</a>');
+
 		// reddit subreddit links
-		text = text.replace(/ \/r\/(\w+)/gim, ' <a target="blank" href="https://reddit.com/r/$1">/r/$1</a>');
+		text = text.replace(/\s+\/r\/(\w+)\/?/gi, ' <a target="blank" href="https://reddit.com/r/$1">/r/$1</a>');
+		text = text.replace(/\s+\/u\/(\w+)\/?/gi, ' <a target="blank" href="https://reddit.com/u/$1">/r/$1</a>');
+
 		// update text
 		$msg.html(text);
 	};
@@ -455,6 +460,11 @@
 			$(".text-counter-input").val($(".text-counter-input").val() + ' ' + $(this).text()).focus();
 		}
 	};
+	// remove channel key from message
+	var remove_channel_key_from_message = function(message){
+		var offset = $("#robinChatWindow").attr("data-channel-key").length + 1;
+		return message.slice(offset);
+	}
 
 	/**
 	 * Parse a link and apply changes
@@ -467,9 +477,7 @@
 		// dont parse system messages
 		if($ele.hasClass("robin--user-class--system")){
 			if(line.indexOf("ratelimit | you are doing that too much") !== -1){
-				// channel key length + a space length
-				var offset = $("#robinChatWindow").attr("data-channel-key").length + 1;
-				$(".text-counter-input").val(user_last_message.slice(offset));
+				$(".text-counter-input").val(messageHistory[messageHistoryIndex-1]);
 			}
 			return;
 		}
@@ -486,7 +494,7 @@
 		}
 
 		// Make links clickable
-		if(!_robin_grow_detected && line.indexOf("http") !== -1){
+		if(!_robin_grow_detected && (line.indexOf("http") !== -1 || line.indexOf("/r/") !== -1 || line.indexOf("/u/") !== -1)){
 			auto_link($msg);
 		}
 
@@ -555,7 +563,33 @@
 
 		// store i copy of last message, in case somthing goes wrong (rate limit)
 		$("#robinSendMessage").submit(function(){
-			user_last_message = $(".text-counter-input").val();
+			var user_last_message = $(".text-counter-input").val();
+
+			// if message history is to long, clear it out
+			if(messageHistory.length === 25){
+				messageHistory = messageHistory.shift();
+			} 
+			messageHistory.push(remove_channel_key_from_message(user_last_message));
+			messageHistoryIndex = messageHistory.length;
+		});
+
+		// up for last message send, down for prev (if moving between em)
+		$('input.text-counter-input').on('keydown', function(e) {
+			if(e.keyCode == 38) {
+				e.preventDefault();
+				messageHistoryIndex--;
+				if(messageHistoryIndex > -1){
+					$(this).val(messageHistory[messageHistoryIndex]);
+				} 
+			}else if(e.keyCode == 40){
+				e.preventDefault();
+				if(messageHistoryIndex <= messageHistory.length){
+					messageHistoryIndex++;
+					$(this).val(messageHistory[messageHistoryIndex]);
+				}else{
+					$(this).val('');
+				}
+			}
 		});
 	});
 
