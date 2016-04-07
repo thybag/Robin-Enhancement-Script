@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Robin Enhancement Script
 // @namespace	https://www.reddit.com/
-// @version		3.1.3
+// @version		3.2.0
 // @description	Highlight mentions, make links clickable, add tabbed channels & automatically remove spam
 // @author		Bag, netnerd01
 // @match		https://www.reddit.com/robin*
@@ -34,6 +34,7 @@
 		'rgba(255,20,147, .1)',
 		'rgba(184,134,11, .1)',
 	 ];
+
 
 	// Play nice with Greasemonkey
 	if(typeof GM_getValue === "undefined") GM_getValue = function(){return false;};
@@ -403,11 +404,46 @@
 		$("#robinChatWindow").scrollTop($("#robinChatMessageList").height());
 	};
 
+	// create persistant option
+	function createOption(name, click_action, default_state){
+		var checked_markup;
+		var key = "robin-enhance-" + name.replace(/\W/g, '');
+		console.log(key);
+		var state = (typeof default_state !== "undefined") ? default_state : false;
+
+		// try and state if setting is defined
+		if(GM_getValue(key)){
+			console.log("state loaded");
+			state = (GM_getValue(key) === 'true') ? true : false;
+		}
+		// markup for state
+		checked_markup = (state === true) ? "checked='checked'" : "";
+		// render option
+		var $option = $("<label><input type='checkbox' "+checked_markup+">"+name+"</label>").click(function(){
+			var checked = $(this).find("input").is(':checked');
+
+			// persist state
+			if(checked != state){
+				console.log("state saved", checked);
+				GM_setValue(key, checked ? 'true' : 'false'); // true/false stored as strings, to avoid unset matching
+				state = checked;
+			}
+
+			click_action(checked, $(this));
+		});
+		// add to dom
+		$("#robinDesktopNotifier").append($option);
+		// init
+		click_action(default_state, $option)
+	};
+
+	// update spam count
 	var update_spam_count = function(){
 		blocked_spam++;
 		blocked_spam_el.innerHTML = blocked_spam;
 	};
 
+	// when name is clicked, fill it into the chat box
 	var fill_name = function(e){
 		e.preventDefault();
 		e.stopPropagation();
@@ -477,39 +513,6 @@
 		}
 	});
 
-
-	function createOption(name, click_action, default_state){
-		var checked_markup;
-		var key = "robin-enhance-" + name.replace(/\W/g, '');
-		console.log(key);
-		var state = (typeof default_state !== "undefined") ? default_state : false;
-
-		// try and state if setting is defined
-		if(GM_getValue(key)){
-			console.log("state loaded");
-			state = (GM_getValue(key) === 'true') ? true : false;
-		}
-		// markup for state
-		checked_markup = (state === true) ? "checked='checked'" : "";
-		// render option
-		var $option = $("<label><input type='checkbox' "+checked_markup+">"+name+"</label>").click(function(){
-			var checked = $(this).find("input").is(':checked');
-
-			// persist state
-			if(checked != state){
-				console.log("state saved", checked);
-				GM_setValue(key, checked ? 'true' : 'false'); // true/false stored as strings, to avoid unset matching
-				state = checked;
-			}
-
-			click_action(checked, $(this));
-		});
-		// add to dom
-		$("#robinDesktopNotifier").append($option);
-		// init
-		click_action(default_state, $option)
-	}
-
 	// When everything is ready
 	$(document).ready(function(){
 
@@ -534,7 +537,7 @@
 			}
 			// correct scroll after spam filter change
 			_scroll_to_bottom();
-		},true);
+		},false);
 
 
 
@@ -554,7 +557,6 @@
 		$("#robinSendMessage").submit(function(){
 			user_last_message = $(".text-counter-input").val();
 		});
-
 	});
 
 	// fix by netnerd01
