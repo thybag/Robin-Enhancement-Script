@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Robin Enhancement Script
 // @namespace	https://www.reddit.com/
-// @version		3.2.0
+// @version		3.3.0
 // @description	Highlight mentions, make links clickable, add tabbed channels & automatically remove spam
 // @author		Bag, netnerd01
 // @match		https://www.reddit.com/robin*
